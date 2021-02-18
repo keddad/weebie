@@ -1,26 +1,30 @@
 [
 	{
-		"path_case_sensetive": false,
+		"path_case_sensitive": false,
 		"regex_path": "(\/public\/index.php|elrekt.php|thinkphp|\/tp\/index.php|\/tp\/public|think\\app|hellothinkphp)",
 		"risk": 2,
-		"comment": "ThinkPHP scan"
+		"comment": "ThinkPHP scan",
+		"id": "thinkphp"
 	},
 	{
-		"path_case_sensetive": false,
+		"path_case_sensitive": false,
 		"regex_path": "\/wp-",
 		"risk": 2,
-		"comment": "WordPress scan"
+		"comment": "WordPress scan",
+		"id": "wordpress"
 	},
 	{
-		"path_case_sensetive": false,
+		"path_case_sensitive": false,
 		"regex_path": "(pma|phpmyadmin|mysql|sqlite)",
 		"risk": 2,
-		"comment": "DBMS scan"
+		"comment": "DBMS scan",
+		"id": "dbms"
 	},
 	{
-		"path_case_sensetive": false,
+		"path_case_sensitive": false,
 		"regex_path": "^\/",
 		"risk": 1,
-		"comment": "possible portscan, banner/fingerprint gathering"
+		"comment": "possible portscan, banner/fingerprint gathering",
+		"id": "someport"
 	}
 ]
