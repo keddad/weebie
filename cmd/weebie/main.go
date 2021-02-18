@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	//"log"
 	"io/ioutil"
 	"encoding/json"
 	"net/http"
@@ -27,16 +26,16 @@ type Rule struct {
 	CaseSensBody	bool			`json:"body_case_sensetive"`
 	RegexBody	string			`json:"regex_body"`
 	regexBody	*regexp.Regexp
-	Risk		float64	// 1 - port, 2 - service, 3 - vulnerability
+	Risk		float64			// 1 - port, 2 - service, 3 - vulnerability
 	Comment		string
 }
 var rules []Rule
 
 
 func check(e error) {
-    if e != nil {
-        panic(e)
-    }
+	if e != nil {
+		panic(e)
+	}
 }
 
 // all URI processed here
@@ -54,7 +53,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		isDebug = true
 	}
 	if isDebug {
-		//fmt.Fprintln(w, "DEBUG MODE ENABLED\n")
+		//debug mode enabled message
 	}
 
 	for _, rule := range rules {
@@ -79,18 +78,15 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-
-	//fmt.Fprintf(w, "helo, %s\n", path)
 }
 
 // handles 40x errors from nginx (error_page have to redirect here)
 //TODO
 func errorHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "error, %s", r.URL.Path[1:])
+	fmt.Fprintf(w, "%s\n", r.URL.Path[1:])
 }
 
 func main() {
-
 	// read config
 	bs, err := ioutil.ReadFile("config.json")
 	check(err)
