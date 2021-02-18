@@ -1,40 +1,55 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
-	"io"
+	"time"
 )
 
-type Configuration struct {
-	ListenAddr	string	`json:"listen_addr"`
-	DebugSecret	string	`json:"debug_secret"`
-	RulesFile	string	`json:"rules_file"`
-}
 var config Configuration
 
-type Rule struct {
-	CaseSensPath	bool			`json:"path_case_sensetive"`
-	RegexPath	string			`json:"regex_path"`
-	regexPath	*regexp.Regexp
-	CaseSensQuery	bool			`json:"query_case_sensetive"`
-	QueryParams	map[string]string	`json:"query_params"`
-	CaseSensBody	bool			`json:"body_case_sensetive"`
-	RegexBody	string			`json:"regex_body"`
-	regexBody	*regexp.Regexp
-	Risk		float64			// 1 - port, 2 - service, 3 - vulnerability
-	Comment		string
-}
 var rules []Rule
-
 
 func check(e error) {
 	if e != nil {
 		panic(e)
+	}
+}
+
+func riskToString(a int) string {
+	switch a {
+	case port:
+		return "Port"
+	case service:
+		return "Service"
+	case vuln:
+		return "Vuln"
+	}
+
+	return "?"
+}
+
+func returnHandler(w http.ResponseWriter, req *http.Request, rul *Rule) {
+	ip := req.Header.Get(config.IpHeader)
+
+	message := ""
+	if ip == "" {
+		message = fmt.Sprintf("%s - %s - %s - <No IP>\n", time.Now().Format(time.RFC3339), rul.ID, riskToString(rul.Risk))
+	} else {
+		message = fmt.Sprintf("%s - %s - %s - %s\n", time.Now().Format(time.RFC3339), rul.ID, riskToString(rul.Risk), ip)
+	}
+
+	if config.WriteLogs {
+		fmt.Print(message)
+	}
+
+	if config.WriteResponse {
+		fmt.Fprint(w, message)
 	}
 }
 
@@ -52,8 +67,9 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	if queryParams.Get(config.DebugSecret) == config.DebugSecret {
 		isDebug = true
 	}
+
 	if isDebug {
-		//debug mode enabled message
+		fmt.Printf("%s - %s - %s - %s - DEBUG\n", time.Now().Format(time.RFC3339), r.URL, r.Method, r.Header)
 	}
 
 	for _, rule := range rules {
@@ -67,13 +83,13 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		if rule.regexPath != nil && rule.regexBody != nil {
 			if rule.regexPath.MatchString(processedPath) && rule.regexBody.MatchString(processedBody) {
-				fmt.Fprintln(w, rule.Comment)
+				returnHandler(w, r, &rule)
 				break
 			}
 		}
 		if rule.regexPath != nil && rule.regexBody == nil {
 			if rule.regexPath.MatchString(processedPath) {
-				fmt.Fprintln(w, rule.Comment)
+				returnHandler(w, r, &rule)
 				break
 			}
 		}
@@ -93,7 +109,6 @@ func main() {
 
 	check(json.Unmarshal(bs, &config))
 
-
 	// read rules
 	bs, err = ioutil.ReadFile(config.RulesFile)
 	check(err)
@@ -104,9 +119,7 @@ func main() {
 		rules[i].regexBody = regexp.MustCompile(rules[i].RegexBody)
 	}
 
-
 	http.HandleFunc("/.well-known/weebie", errorHandler)
 	http.HandleFunc("/", rootHandler)
 	check(http.ListenAndServe(config.ListenAddr, nil))
-
 }
