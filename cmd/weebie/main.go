@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -94,21 +96,56 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", r.URL.Path[1:])
 }
 
+func loadFile(path string) {
+	bs, err := ioutil.ReadFile(path)
+
+	if err != nil {
+		fmt.Printf("Couldn't read rule file %s: %e\n", path, err)
+		panic(err)
+	}
+
+	fileRules := make([]Rule, 0)
+
+	err = json.Unmarshal(bs, &fileRules)
+
+	if err != nil {
+		fmt.Printf("Couldn't decode rule file %s: %e\n", path, err)
+		panic(err)
+	}
+
+	rules = append(rules, fileRules...)
+}
+
 func main() {
 	bs, err := ioutil.ReadFile("config.json")
 	check(err)
 
 	check(json.Unmarshal(bs, &config))
 
-	// read rules
-	bs, err = ioutil.ReadFile(config.RulesFile)
-	check(err)
+	if config.RulesFile != "" {
+		loadFile(config.RulesFile)
+	}
 
-	check(json.Unmarshal(bs, &rules))
+	if config.RulesFolder != "" {
+		e := filepath.Walk(config.RulesFolder, func(path string, f os.FileInfo, err error) error {
+			if !f.IsDir() {
+				loadFile(path)
+			}
+			return err
+		})
+
+		if e != nil {
+			fmt.Printf("Couldn't load fules from folder: %e\n", e)
+			panic(e)
+		}
+	}
+
 	for i := 0; i < len(rules); i++ {
 		rules[i].regexPath = regexp.MustCompile(rules[i].RegexPath)
 		rules[i].regexBody = regexp.MustCompile(rules[i].RegexBody)
 	}
+
+	fmt.Printf("Loaded %d rules\n", len(rules))
 
 	http.HandleFunc("/.well-known/weebie", errorHandler)
 	http.HandleFunc("/", rootHandler)
