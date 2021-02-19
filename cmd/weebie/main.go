@@ -28,7 +28,7 @@ func riskToString(a int) string {
 	case service:
 		return "Service"
 	case vuln:
-		return "Vuln"
+		return "Vulnerable"
 	}
 
 	return "?"
@@ -49,19 +49,18 @@ func returnHandler(w http.ResponseWriter, req *http.Request, rul *Rule) {
 	}
 
 	if config.WriteResponse {
-		fmt.Fprint(w, message)
+		_, err := fmt.Fprint(w, message)
+		check(err)
 	}
 }
 
 // all URI processed here
 //TODO
 func rootHandler(w http.ResponseWriter, r *http.Request) {
-	path := r.URL.Path
 	queryParams := r.URL.Query()
 	buf := new(strings.Builder)
 	_, err := io.Copy(buf, r.Body)
 	check(err)
-	body := buf.String()
 
 	isDebug := false
 	if queryParams.Get(config.DebugSecret) == config.DebugSecret {
@@ -72,27 +71,20 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("%s - %s - %s - %s - DEBUG\n", time.Now().Format(time.RFC3339), r.URL, r.Method, r.Header)
 	}
 
-	for _, rule := range rules {
-		processedPath := path
-		processedBody := body
-		if !rule.CaseSensPath {
-			processedPath = strings.ToLower(processedPath)
-		}
-		if !rule.CaseSensBody {
-			processedPath = strings.ToLower(processedPath)
-		}
-		if rule.regexPath != nil && rule.regexBody != nil {
-			if rule.regexPath.MatchString(processedPath) && rule.regexBody.MatchString(processedBody) {
-				returnHandler(w, r, &rule)
-				break
+	var triggeredRule *Rule = nil
+
+	for i, rule := range rules {
+		if rule.Match(r) {
+			if triggeredRule == nil {
+				triggeredRule = &rules[i]
+			} else if triggeredRule.Risk < rule.Risk {
+				triggeredRule = &rules[i]
 			}
 		}
-		if rule.regexPath != nil && rule.regexBody == nil {
-			if rule.regexPath.MatchString(processedPath) {
-				returnHandler(w, r, &rule)
-				break
-			}
-		}
+	}
+
+	if triggeredRule != nil {
+		returnHandler(w, r, triggeredRule)
 	}
 }
 
@@ -103,7 +95,6 @@ func errorHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// read config
 	bs, err := ioutil.ReadFile("config.json")
 	check(err)
 

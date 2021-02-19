@@ -1,0 +1,10 @@
+[
+  {
+    "path_case_sensitive": false,
+    "regex_path": "^\/trule1",
+    "risk": 3,
+    "comment": "Test Rule 1",
+    "id": "trule1"
+  }
+]
+

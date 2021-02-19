@@ -2,6 +2,7 @@
 	"listen_addr": "127.0.0.1:8888",
 	"debug_secret": "change-me-please",
 	"rules_file": "rules.json",
+	"rules_folder": "rules",
 	"write_logs": true,
 	"write_response": true,
 	"ip_header": "X-Real-IP"
