@@ -56,8 +56,7 @@ func returnHandler(w http.ResponseWriter, req *http.Request, rul *Rule) {
 	}
 }
 
-// all URI processed here
-//TODO
+
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	buf := new(strings.Builder)
@@ -90,8 +89,7 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handles 40x errors from nginx (error_page have to redirect here)
-//TODO
+
 func errorHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", r.URL.Path[1:])
 }

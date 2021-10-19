@@ -1,4 +1,3 @@
 # webbie
 
-Golang web honeypot. Accepts all requests as suspicious, so you have to 
-correctly setup your reverse proxy, like nginx.
+Golang request pattern-matcher which filters suspicious requests and logs them based on a ruleset. Check `config.json` and `rules` for examples
